@@ -196,7 +196,7 @@ git push
 
 * **Системные:** `git`, `curl`, `wget`, `htop`, `jq`, `unzip`, `build-essential` / `base-devel` / `glibc-devel`
 * **Безопасность и бэкапы:** `age`, `restic`
-* **CLI-инструменты:** `gh`, `tmux`, `ripgrep`, `fzf`, `fd-find` / `fd`, `eza`, `micro`
+* **CLI-инструменты:** `gh`, `tmux`, `ripgrep`, `fzf`, `fd-find` / `fd`, `eza`, `micro`, `mc`
 * **Разработка:** `python3-pip` / `python-pip`, `golang-go` / `go` / `golang`
 * **Шрифты:** `fontconfig`
 
@@ -216,10 +216,6 @@ git push
 
 * Устанавливает `docker` для контейнеризации.
 * Устанавливает `wsl-open` для интеграции с Windows.
-
-#### `run_once_after_60-wezterm.sh.tmpl` — Терминал WezTerm
-
-Устанавливает WezTerm с учетом текущей ОС: подключает PPA `apt.fury.io` для Debian/Ubuntu либо использует штатный `pacman` / `apt-get` для Arch и ALT Linux.
 
 #### `run_once_after_70-fonts.sh.tmpl` — Шрифты
 
@@ -255,7 +251,7 @@ git push
 
 Устанавливает пакеты через Scoop:
 
-* **Основные инструменты:** `git`, `gh`, `pwsh`, `vscode`, `windows-terminal`, `wezterm`, `curl`, `wget`, `aria2`, `7zip`, `sudo`, `grep`
+* **Основные инструменты:** `git`, `gh`, `pwsh`, `vscode`, `windows-terminal`, `curl`, `wget`, `aria2`, `7zip`, `sudo`, `grep`
 * **CLI-улучшения:** `jq`, `yq`, `fd`, `ripgrep`, `fzf`, `zoxide`, `starship`, `dust`, `procs`, `bat`, `lsd`
 * **Сеть и утилиты:** `nmap`, `curlie`, `yt-dlp`, `ffmpeg`, `advanced-ip-scanner`
 * **Разработка:** `nodejs-lts`, `go`, `uv`
@@ -339,7 +335,6 @@ chezmoi data
 * **[VS Code](https://code.visualstudio.com/)** — редактор по умолчанию
 * **[Helix](https://helix-editor.com/)** — современный терминальный редактор
 * **[tmux](https://github.com/tmux/tmux/wiki)** — терминальный мультиплексор
-* **[WezTerm](https://wezfurlong.org/wezterm/)** — кроссплатформенный терминал
 * **[Windows Terminal](https://github.com/microsoft/terminal)** — терминал для Windows
 * **[Scoop](https://scoop.sh/)** — менеджер пакетов для Windows
 * **[Starship](https://starship.rs/)** — кастомный промпт для оболочки

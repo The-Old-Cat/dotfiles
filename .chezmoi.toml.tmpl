@@ -1,23 +1,19 @@
 # .chezmoi.toml.tmpl
 # Конфигурация Chezmoi
 
-{{ $is_wsl := false -}}
-{{ if eq .chezmoi.os "linux" -}}
-{{   if hasKey .chezmoi "kernel" -}}
-{{     if or (contains "microsoft" (lower .chezmoi.kernel.osrelease)) (contains "wsl" (lower .chezmoi.kernel.osrelease)) -}}
-{{       $is_wsl = true -}}
-{{     end -}}
-{{   end -}}
-{{ end -}}
+{{- $is_wsl := false -}}
+{{- if eq .chezmoi.os "linux" -}}
+  {{- if hasKey .chezmoi "kernel" -}}
+    {{- if or (contains "microsoft" (lower .chezmoi.kernel.osrelease)) (contains "wsl" (lower .chezmoi.kernel.osrelease)) -}}
+      {{- $is_wsl = true -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
 
 {{- $has_gui := false -}}
-
 {{- if eq .chezmoi.os "linux" -}}
-  {{/* GUI есть только если задан DISPLAY, это не WSL и это НЕ SSH-сессия */}}
-  {{- $is_wsl := .chezmoi.kernel.osrelease | lower | contains "microsoft" -}}
   {{- $is_ssh := or (env "SSH_CLIENT") (env "SSH_TTY") (env "SSH_CONNECTION") -}}
   {{- $has_display := or (env "DISPLAY") (env "WAYLAND_DISPLAY") -}}
-
   {{- if and $has_display (not $is_wsl) (not $is_ssh) -}}
     {{- $has_gui = true -}}
   {{- end -}}
@@ -40,6 +36,10 @@ encryption = "age"
     email = "artkov476@gmail.com"
     is_wsl = {{ $is_wsl }}
     has_gui = {{ $has_gui }}
+
+[data.pgadmin]
+    email = "artkov476@gmail.com"
+    password = {{ promptStringOnce . "pgadmin_password" "pgAdmin password" | quote }}
 
 [age]
     identity = "{{ .chezmoi.homeDir }}/.config/age/key.txt"
