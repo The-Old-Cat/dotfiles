@@ -37,9 +37,6 @@ encryption = "age"
     is_wsl = {{ $is_wsl }}
     has_gui = {{ $has_gui }}
 
-[data.pgadmin]
-    email = "artkov476@gmail.com"
-    password = {{ promptStringOnce . "pgadmin_password" "pgAdmin password" | quote }}
 
 [age]
     identity = "{{ .chezmoi.homeDir }}/.config/age/key.txt"
