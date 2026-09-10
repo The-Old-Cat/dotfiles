@@ -2,6 +2,12 @@
 set -euo pipefail
 
 {{- if .has_gui }}
+# Пропускаем установку, если запуск происходит по SSH
+if [[ -n "${SSH_CONNECTION:-}" || -n "${SSH_CLIENT:-}" || -n "${SSH_TTY:-}" ]]; then
+    echo "Skipping WezTerm (running over SSH session)"
+    exit 0
+fi
+
 if ! command -v wezterm >/dev/null 2>&1; then
     echo "Installing WezTerm..."
 
