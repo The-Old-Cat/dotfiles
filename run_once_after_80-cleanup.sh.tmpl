@@ -1,0 +1,118 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Cleanup script: temp files + package manager caches
+# - apt: autoclean (safe) + autoremove (with manual confirmation)
+# - pacman: paccache / -Sc (if available)
+# - temp files: cache/state dirs older than N days
+# ---------------------------------------------------------------------------
+
+echo "▶ Starting cleanup..."
+
+# ---------------------------------------------------------------------------
+# Helper: ask for confirmation. If not a TTY, default to "no".
+# ---------------------------------------------------------------------------
+confirm() {
+    local prompt="${1:-Continue?}"
+    if [[ ! -t 0 ]]; then
+        # Non-interactive (e.g. cron, CI, piped run) — skip destructive step
+        return 1
+    fi
+    local reply
+    read -r -p "${prompt} [y/N] " reply
+    [[ "${reply}" =~ ^[Yy]$ ]]
+}
+
+# ---------------------------------------------------------------------------
+# 1. Temp files cleanup (safe, per-user)
+# ---------------------------------------------------------------------------
+echo "→ Cleaning user temp files..."
+
+# Старые логи в ~/.local/state (30+ дней)
+if [[ -d "${HOME}/.local/state" ]]; then
+    find "${HOME}/.local/state" -type f -name "*.log" -mtime +30 -delete 2>/dev/null || true
+fi
+
+# Старые файлы в ~/.cache (60+ дней) — безопасно, кэш пересоздаётся
+if [[ -d "${HOME}/.cache" ]]; then
+    find "${HOME}/.cache" -type f -atime +60 -delete 2>/dev/null || true
+    # Убираем пустые директории, оставшиеся после удаления
+    find "${HOME}/.cache" -type d -empty -delete 2>/dev/null || true
+fi
+
+# Старые временные файлы в /tmp, принадлежащие пользователю (7+ дней)
+find /tmp -maxdepth 1 -type f -user "$(id -u)" -mtime +7 -delete 2>/dev/null || true
+
+echo "  ✓ Temp files cleaned"
+
+# ---------------------------------------------------------------------------
+# 2. APT (Debian/Ubuntu)
+# ---------------------------------------------------------------------------
+if command -v apt-get >/dev/null 2>&1; then
+    echo "→ APT cleanup..."
+
+    # 2a. autoclean — безопасно, удаляет только устаревшие .deb из кэша
+    sudo apt-get autoclean -y >/dev/null
+
+    # 2b. autoremove — с ручным подтверждением
+    local_autoremove_list="$(apt-get -s autoremove 2>/dev/null | awk '/^Remv / {print $2}' || true)"
+
+    if [[ -z "${local_autoremove_list}" ]]; then
+        echo "  ✓ Nothing to autoremove"
+    else
+        echo "  The following packages will be removed by autoremove:"
+        echo "${local_autoremove_list}" | sed 's/^/    - /'
+
+        if confirm "  Run 'apt-get autoremove'?"; then
+            sudo apt-get autoremove -y
+            echo "  ✓ autoremove done"
+        else
+            echo "  ⊘ autoremove skipped by user"
+        fi
+    fi
+
+    # 2c. Чистим полностью пустой кэш apt (по желанию)
+    sudo apt-get clean >/dev/null 2>&1 || true
+fi
+
+# ---------------------------------------------------------------------------
+# 3. Pacman (Arch)
+# ---------------------------------------------------------------------------
+if command -v pacman >/dev/null 2>&1; then
+    echo "→ Pacman cleanup..."
+
+    # Удаляем осиротевшие пакеты — с подтверждением
+    orphans="$(pacman -Qtdq 2>/dev/null || true)"
+    if [[ -n "${orphans}" ]]; then
+        echo "  Orphaned packages:"
+        echo "${orphans}" | sed 's/^/    - /'
+        if confirm "  Remove orphaned packages?"; then
+            # shellcheck disable=SC2086
+            sudo pacman -Rns --noconfirm ${orphans}
+            echo "  ✓ Orphans removed"
+        else
+            echo "  ⊘ Orphan removal skipped"
+        fi
+    else
+        echo "  ✓ No orphans"
+    fi
+
+    # Чистим кэш пакетов: оставляем 3 последние версии
+    if command -v paccache >/dev/null 2>&1; then
+        sudo paccache -rk3
+    else
+        sudo pacman -Sc --noconfirm || true
+    fi
+fi
+
+# ---------------------------------------------------------------------------
+# 4. DNF / YUM (Fedora / RHEL)
+# ---------------------------------------------------------------------------
+if command -v dnf >/dev/null 2>&1; then
+    echo "→ DNF cleanup..."
+    sudo dnf autoremove -y >/dev/null 2>&1 || true
+    sudo dnf clean all >/dev/null 2>&1 || true
+fi
+
+echo "✓ Cleanup completed"
