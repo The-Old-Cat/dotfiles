@@ -29,34 +29,30 @@
 dotfiles/
  ├── .git/                                            # Git-метаданные
  ├── .chezmoiignore                                   # Файлы, игнорируемые chezmoi
- ├── .chezmoi.toml.tmpl                               # Шаблон конфига chezmoi
+ ├── .chezmoi.toml.tmpl                               # Шаблон конфига chezmoi (данные, age, редактор)
  ├── Documents/
  │   └── PowerShell/
- │       └── Microsoft.PowerShell_profile.ps1.tmpl    # → профиль PowerShell
+ │       └── Microsoft.PowerShell_profile.ps1.tmpl    # → Documents\PowerShell\Microsoft.PowerShell_profile.ps1
  ├── dot_bash_logout                                  # → ~/.bash_logout
  ├── dot_bashrc                                       # → ~/.bashrc
  ├── dot_profile                                      # → ~/.profile
  ├── dot_gitconfig.tmpl                               # → ~/.gitconfig (шаблон)
- ├── private_dot_config/                              # → ~/.config/ (права 0600/0700)
- │   ├── chezmoi/
- │   │   └── chezmoi.toml                             # Конфиг chezmoi
+ ├── private_dot_config/                              # → ~/.config/ (права 0700/0600)
  │   ├── helix/
  │   │   ├── config.toml                              # Конфиг редактора Helix
  │   │   └── themes/
- │   │       └── gruvbox.toml
+ │   │       └── gruvbox.toml                         # Тема Gruvbox для Helix
  │   ├── starship/
  │   │   └── starship.toml                            # Конфиг Starship
- │   ├── tmux/
- │   │   └── tmux.conf                                # Конфиг tmux
- │   └── wezterm/
- │       └── wezterm.lua                              # Конфиг WezTerm
+ │   └── tmux/
+ │       └── dot_tmux.conf                            # → ~/.config/tmux/tmux.conf
  ├── run_once_after_10-base-packages.sh.tmpl          # 10: Кросс-дистрибутивные базовые пакеты
  ├── run_once_after_15-windows-packages.ps1.tmpl      # 15: Пакеты Windows (Scoop)
- ├── run_once_after_20-helix.sh.tmpl                  # 20: Редактор Helix (из бинарного релиза)
+ ├── run_once_after_25-helix.sh.tmpl                  # 25: Редактор Helix (из бинарного релиза)
  ├── run_once_after_30-hugo.sh.tmpl                   # 30: Генератор Hugo Extended (tar.gz)
  ├── run_once_after_40-uv.sh.tmpl                     # 40: Python-менеджер uv
+ ├── run_once_after_45-starship.sh.tmpl               # 45: Промпт Starship (установочный скрипт)
  ├── run_once_after_50-wsl.sh.tmpl                    # 50: WSL-специфика (Docker)
- ├── run_once_after_60-wezterm.sh.tmpl                # 60: Терминал WezTerm (мульти-дистрибутивный)
  ├── run_once_after_70-fonts.sh.tmpl                  # 70: JetBrainsMono Nerd Font
  └── run_once_after_80-cleanup.sh.tmpl                # 80: Очистка кэшей и временных файлов
 
@@ -200,9 +196,9 @@ git push
 * **Разработка:** `python3-pip` / `python-pip`, `golang-go` / `go` / `golang`
 * **Шрифты:** `fontconfig`
 
-#### `run_once_after_20-helix.sh.tmpl` — Редактор Helix
+#### `run_once_after_25-helix.sh.tmpl` — Редактор Helix
 
-Устанавливает современный терминальный редактор Helix напрямую из архивных релизов GitHub для текущей архитектуры (`x86_64` / `aarch64`) без использования пакетных менеджеров.
+Устанавливает современный терминальный редактор Helix (релиз `24.07`) напрямую из архивных релизов GitHub для текущей архитектуры (`x86_64` / `aarch64`) в `/usr/local` без использования пакетных менеджеров. Пропускает установку, если `helix` уже присутствует в `PATH`.
 
 #### `run_once_after_30-hugo.sh.tmpl` — Генератор сайтов Hugo Extended
 
@@ -211,6 +207,10 @@ git push
 #### `run_once_after_40-uv.sh.tmpl` — Python-менеджер uv
 
 Устанавливает `uv` — ультрабыстрый менеджер пакетов и окружений Python от Astral.
+
+#### `run_once_after_45-starship.sh.tmpl` — Промпт Starship
+
+Устанавливает Starship официальным установочным скриптом (`starship.rs/install.sh`) в `~/.local/bin`. Пропускает установку, если `starship` уже присутствует в `PATH`.
 
 #### `run_once_after_50-wsl.sh.tmpl` — WSL-специфичные настройки
 
@@ -299,7 +299,7 @@ chezmoi data
 
 ```
 
-**Пример вывода:**
+**Пример вывода (сокращённо):**
 
 ```json
 {
@@ -311,10 +311,18 @@ chezmoi data
     "homeDir": "/home/yourname"
   },
   "email": "your.email@example.com",
-  "name": "Your Name"
+  "name": "Your Name",
+  "is_wsl": false,
+  "has_gui": true
 }
 
 ```
+
+Персональные данные (`name`, `email`) и вычисляемые флаги задаются в секции `[data]` файла `.chezmoi.toml.tmpl`. Там же настраиваются:
+
+* `encryption = "age"` — шифрование секретов (ключи: `~/.config/age/key.txt`, публичный ключ получателя указан в `[age]`);
+* `[edit]` — редактор конфигов: `code --wait` при наличии GUI, иначе терминальный `hx`;
+* `[cd]` — на Windows `chezmoi cd` открывает `pwsh -NoExit`.
 
 Эти переменные используются в шаблонах (файлы с расширением `.tmpl`). Например, в `dot_gitconfig.tmpl`:
 
@@ -324,6 +332,8 @@ chezmoi data
     email = {{ .email }}
 
 ```
+
+> **Примечание:** `dot_gitconfig.tmpl` ссылается на `~/.gitignore_global` (параметр `core.excludesfile`), но этот файл не управляется данным репозиторием — создайте его самостоятельно, если нужен глобальный `.gitignore`.
 
 ---
 
